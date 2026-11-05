@@ -1,0 +1,13 @@
+{
+  "name": "adam-assistant-bot",
+  "version": "1.0.0",
+  "description": "Adam Assistant Telegram Bot for 24/7 Operations",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {}
+}
