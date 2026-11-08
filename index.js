@@ -1,7 +1,7 @@
 const http = require('http');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '9228994096:AAEbYCfyxhRNNOtZmFFlo2HXTIPNHfo1QBA';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AQ.Ab8RN6JNbalUB4ODZKCd3x__N9-lmJGdaw-4EMirV80zTW-Pwg';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AQ.Ab8RN6KwGbaC-rh_JGyxOdv8nMGg8FUIJmzo2P-mipr_yz2QnA';
 const NOTION_TOKEN = process.env.NOTION_TOKEN || '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';
 const PORT = process.env.PORT || 3000;
 
