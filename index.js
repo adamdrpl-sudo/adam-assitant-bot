@@ -5,6 +5,16 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42S1
 const NOTION_TOKEN = process.env.NOTION_TOKEN || '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';
 const PORT = process.env.PORT || 3000;
 
+function getBangkokDate(offsetDays = 0) {
+  const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+  d.setDate(d.getDate() + offsetDays);
+  return d;
+}
+
+function formatThaiDate(d) {
+  return d.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 let lastUpdateId = 0;
 
@@ -46,38 +56,34 @@ async function askGemini(promptText) {
   try {
     if (!GEMINI_API_KEY) return null;
 
-    const systemContext = `คุณคือ Adam Assistant ผู้ช่วยส่วนตัวและที่ปรึกษาเชิงกลยุทธ์ระดับบริหารของคุณอดัม (Adam dp)
-บทบาทของคุณอดัม: ผู้ดูแลภาพรวมและ operation ของกลุ่มธุรกิจร้านอาหาร Abushi, ช้อนแกง, ครัวกลาง, งานจัดเลี้ยง Catering/Event, และ FoodCanvas คอนซัลร้านอาหาร (เช่น ดินนาโนะ เซนทรัลกระบี่)
+    const now = getBangkokDate(0);
+    const dateStr = formatThaiDate(now);
+    const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
 
-บริบทปัจจุบัน:
-- สัปดาห์นี้มีงานสำคัญ:
-  1. พฤหัสฯ 5 พ.ย. : รอลูกค้าคอนเฟิร์ม (ช่วงเช้าเตรียมส่งแบบดินนาโนะ / บ่ายเตรียมของออกงาน)
-  2. ศุกร์ 6 พ.ย. : ออกงาน Shrewsbury (คุณอดัม + มะ ถึงหน้างาน 13:00 น. เริ่ม 17:00 น. เลิกดึก)
-  3. เสาร์ 7 พ.ย. มี 2 งานชนกัน : 
-     - งาน Wellington: ตี + เล็ก (ถึงหน้างาน ตี 05:30 น.)
-     - งาน Moonstar: คุณอดัม + มะ + มิว + ดาว + แป้ง (5 คน ถึงหน้างาน 09:00 น.)
-     - 09:00 น. ทำสรุปเซอร์วิสชาร์จพนักงาน Abushi
-  4. อาทิตย์ 8 พ.ย. : ออกงาน Ava Studio
+    const systemContext = `คุณคือ Adam Assistant เลขาและที่ปรึกษาเชิงกลยุทธ์ส่วนตัวของคุณอดัม (Adam dp)
+บทบาทของคุณอดัม: ผู้ดูแลภาพรวมและ operation ของกลุ่มร้านอาหาร Abushi, ช้อนแกง, ครัวกลาง, งานจัดเลี้ยง Catering/Event, และที่ปรึกษา FoodCanvas (เช่น ดินนาโนะ เซนทรัลกระบี่)
+
+วันเวลาปัจจุบัน: วัน${dateStr} เวลา ${timeStr} น.
+
+สถานะงานสำคัญสัปดาห์นี้:
+- เรื่องที่พักอาศัย / แจ้งเข้าน้องทีมงาน (ตม.30): ทำเสร็จเรียบร้อยแล้ว ✅ (ไม่ต้องสั่งหรือเตือนให้ทำซ้ำอีก)
+- สิ่งที่กำลังโฟกัสวันนี้/สัปดาห์นี้:
+  1. ลุยสูตรและเมนูร้านดินนาโนะ (เซนทรัลกระบี่) ล็อกต้นทุน Food cost ปลาไทยอันดามัน 25-28%
+  2. ส่งเอกสารประกันสังคมให้ทาง Halo
+  3. สรุปยอดเงินเดือนพนักงาน Abushi ประจำงวด
+  4. ติดตามงานครัวกลางกับทีมงาน (ตี & เล็ก)
 
 ทีมงานหลัก:
-- ตี (ANATEE): ดูแลครัวกลาง, สต็อก, ERP
-- เล็ก (mgmglaythu41): ดูแลครัวกลาง, พัฒนาเมนู, สต็อก
+- ตี (ANATEE): ครัวกลาง, สต็อก, ERP
+- เล็ก (mgmglaythu41): ครัวกลาง, พัฒนาเมนู, สต็อก
 - มะ (อุซามะฮ์ แดงหย้ง): มือขวาออกงานจัดเลี้ยง
-- มิว, ดาว, แป้ง: ทีมจัดเลี้ยง / ออกงานอีเวนต์
+- มิว, ดาว, แป้ง: ทีมจัดเลี้ยง / อีเวนต์
 - นัส: บริหารจัดการระบบ Notion
 
-7 งานด่วนปัจจุบัน:
-1. ดินนาโนะ (เซนทรัลกระบี่): แผนกำลังคน / ล็อกเมนูปลาไทยอันดามัน (Food cost 25-28%) / ผังครัว A/B คนครัว 2-3 คน
-2. โก๋ในซอย: ตรวจชีต SOP Canvas แท็บ "พิมพ์ SOP"
-3. ช้อนแกง ตัดเมนู: ตัด 189 / ทบทวน 60 เพื่อเตรียมเปิดร้านคลีนชีวา
-4. ช้อนแกง คอนเทนต์รีโนเวท: วางแผนถ่ายคลิปเคาะหน้ากล้อง "ทำไมปิดร้าน"
-5. จัดเลี้ยงหรูคนน้อย: เมนูชุดฮานะ กล่องลายไม้
-6. Content ซอส Abushi/86B: ถ่ายช็อตถัดไป ซอสเทอริยากิ
-7. การ์ดสูตรซูชิทาโก้: เช็คสูตรหม่าล่า / แตงกวาแซลมอนเตรียมพิมพ์
-
 วิธีตอบ:
-- ตอบด้วยภาษาไทย เป็นกันเอง ชัดเจน สุภาพ กระชับ ตรงประเด็นแบบผู้ช่วยมืออาชีพ
-- เมื่อคุณอดัมพิมพ์เล่าแผนงาน ข้อกังวล หรือแนวคิด ให้รับฟัง วิเคราะห์จังหวะเวลาและความเป็นไปได้ตามตารางงานที่มีจริง ให้คำแนะนำหรือช่วยเตือนความจำอย่างชาญฉลาด`;
+- ตอบด้วยภาษาไทย เป็นกันเอง ชัดเจน สุภาพ กระชับ ตรงประเด็นแบบเลขาผู้บริหารมือโปร
+- เมื่อคุณอดัมบอกว่างานไหนเสร็จแล้ว ให้รับทราบ แสดงความยินดีและอัปเดตสถานะ จากนั้นชี้เป้าหมายงานถัดไปที่ต้องลุยต่อ
+- เข้าใจวันเวลาปัจจุบันเสมอ (วันนี้คือ ${dateStr})`;
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -92,7 +98,6 @@ async function askGemini(promptText) {
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
   } catch (err) {
-    console.error('Gemini error:', err.message);
     return null;
   }
 }
@@ -136,14 +141,20 @@ async function handleMessage(msg) {
   const isShort = rawText.length <= 15;
   const clean = text.replace(/\s+/g, '');
 
-  if (text.startsWith('/today') || (isShort && (clean === 'วันนี้' || clean === 'งานวันนี้' || clean === 'ตารางวันนี้'))) {
-    return await sendMessage(chatId, `📅 ตารางงานวันนี้ (พฤหัสฯ 5 พ.ย. 2026):
-• ทั้งวัน: รอลูกค้าคอนเฟิร์ม (ช่วงเช้าส่งแบบดินนาโนะ / บ่ายเตรียมของออกงาน)`);
+  if (text.startsWith('/today') || text === 'วันนี้' || text === 'งานวันนี้' || text === 'ตารางวันนี้') {
+    const todayDate = formatThaiDate(getBangkokDate(0));
+    return await sendMessage(chatId, `📅 ตารางงานวันนี้ (${todayDate}):
+• ✅ จัดการเรื่องที่พักอาศัย / แจ้งเข้าน้องทีมงาน (เสร็จแล้ว)
+• 📌 ส่งเอกสารประกันสังคมให้ Halo & สรุปยอดเงินเดือน
+• 🐟 ลุยเมนูและสูตรของร้านดินนาโนะ (เซนทรัลกระบี่)
+• 🏢 สรุปยอดและวางแผนงานประจำสัปดาห์`);
   }
 
-  if (text.startsWith('/tomorrow') || (isShort && (clean === 'พรุ่งนี้' || clean === 'งานพรุ่งนี้' || clean === 'ตารางพรุ่งนี้'))) {
-    return await sendMessage(chatId, `📅 ตารางงานวันพรุ่งนี้ (ศุกร์ 6 พ.ย. 2026):
-• 13:00 - 23:00 น. | ออกงาน Shrewsbury (คุณอดัม + มะ)`);
+  if (text.startsWith('/tomorrow') || text === 'พรุ่งนี้' || text === 'งานพรุ่งนี้' || text === 'ตารางพรุ่งนี้') {
+    const tomDate = formatThaiDate(getBangkokDate(1));
+    return await sendMessage(chatId, `📅 ตารางงานวันพรุ่งนี้ (${tomDate}):
+• ติดตามความคืบหน้าเรื่องการล็อกเมนูดินนาโนะ เซนทรัลกระบี่
+• ติดตามระบบสต็อกและงานค้างครัวกลางกับ ตี & เล็ก`);
   }
 
   if (text.startsWith('/week') || (isShort && (clean === 'สัปดาห์นี้' || clean === 'ออกงาน' || clean === 'ตารางออกงาน'))) {
@@ -203,12 +214,6 @@ async function handleMessage(msg) {
     return await sendMessage(chatId, aiAnswer);
   }
 
-  if (cleanCmd.includes('ดินนาโนะ') || cleanCmd.includes('แจ้งเข้า') || cleanCmd.includes('ที่พัก')) {
-    return await sendMessage(chatId, `📝 รับทราบแผนงานเรื่องดินนาโนะ & ทีมงานครับคุณอดัม!\n\n📌 สิ่งที่ต้องดำเนินการพรุ่งนี้ (9 พ.ย.):\n1. แจ้งเรื่องที่พักอาศัยให้น้องทีมงาน\n2. สรุปรายการสูตรและเมนูดินนาโนะ (เซนทรัลกระบี่) ล็อกต้นทุน Food cost ปลาไทยอันดามัน 25-28%\n\n💡 คำแนะนำ: เคลียร์เรื่องแจ้งเข้าน้องช่วงเช้าให้เรียบร้อย จะได้มีสมาธิลุยล็อกเมนูอาหารช่วงบ่ายครับ`);
-  }
-  if (cleanCmd.includes('ประกันสังคม') || cleanCmd.includes('เงินเดือน') || cleanCmd.includes('halo')) {
-    return await sendMessage(chatId, `📑 รับทราบเรื่องเอกสารการเงินครับคุณอดัม!\n\n📌 สิ่งที่ต้องดำเนินการพรุ่งนี้ (9 พ.ย.):\n1. จัดส่งเอกสารประกันสังคมให้ทาง Halo\n2. สรุปยอดเงินเดือนพนักงาน Abushi ประจำงวด\n\n💡 โน้ตไว้ในแผนงานวันพรุ่งนี้เรียบร้อยแล้วครับ อย่าลืมตรวจยอด Service Charge ก่อนเคาะส่งยอดเงินเดือนนะครับ`);
-  }
   return await sendMessage(chatId, `📌 รับทราบและบันทึกไว้ในแผนงานเรียบร้อยครับคุณอดัม:\n"${cleanCmd}"\n\n💡 ต้องการเช็กตารางหรือสิ่งที่ต้องทำวันพรุ่งนี้ พิมพ์: /tomorrow ได้เลยครับ`);
 }
 
