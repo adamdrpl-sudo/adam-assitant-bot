@@ -5,6 +5,9 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42S1
 const NOTION_TOKEN = process.env.NOTION_TOKEN || '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';
 const PORT = process.env.PORT || 3000;
 
+const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
+const APP_URL = 'https://adam-assitant-bot.onrender.com';
+
 function getBangkokDate(offsetDays = 0) {
   const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
   d.setDate(d.getDate() + offsetDays);
@@ -14,19 +17,6 @@ function getBangkokDate(offsetDays = 0) {
 function formatThaiDate(d) {
   return d.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 }
-
-const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
-let lastUpdateId = 0;
-
-// HTTP Health Check Server for Render
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-  res.end('🤖 Adam Assistant Bot is Online 24/7 on Render!\n');
-});
-
-server.listen(PORT, () => {
-  console.log(`HTTP Server running on port ${PORT}`);
-});
 
 async function getNotionTasks() {
   try {
@@ -65,24 +55,23 @@ async function askGemini(promptText) {
 
 วันเวลาปัจจุบัน: วัน${dateStr} เวลา ${timeStr} น.
 
-สถานะงานสำคัญสัปดาห์นี้:
-- เรื่องที่พักอาศัย / แจ้งเข้าน้องทีมงาน (ตม.30): ทำเสร็จเรียบร้อยแล้ว ✅ (ไม่ต้องสั่งหรือเตือนให้ทำซ้ำอีก)
-- สิ่งที่กำลังโฟกัสวันนี้/สัปดาห์นี้:
-  1. ลุยสูตรและเมนูร้านดินนาโนะ (เซนทรัลกระบี่) ล็อกต้นทุน Food cost ปลาไทยอันดามัน 25-28%
-  2. ส่งเอกสารประกันสังคมให้ทาง Halo
-  3. สรุปยอดเงินเดือนพนักงาน Abushi ประจำงวด
-  4. ติดตามงานครัวกลางกับทีมงาน (ตี & เล็ก)
+สถานะงานและตารางสำคัญ:
+- อังคาร 17 พ.ย. 2569:
+  • 16:30 - 21:00 น. ออกงานโรงพยาบาลวิมุต (พญาไท)
+  • ลุยสูตรและเมนูร้านดินนาโนะ (เซนทรัลกระบี่) ล็อก Food cost 25-28%
+  • เอกสารประกันสังคมให้ Halo & สรุปเงินเดือนพนักงาน
+- เรื่องที่พักอาศัย / แจ้งเข้าน้องทีมงาน (ตม.30): ทำเสร็จเรียบร้อยแล้ว ✅
 
 ทีมงานหลัก:
-- ตี (ANATEE): ครัวกลาง, สต็อก, ERP
-- เล็ก (mgmglaythu41): ครัวกลาง, พัฒนาเมนู, สต็อก
+- ตี (ANATEE): ดูแลครัวกลาง, สต็อก, ERP
+- เล็ก (mgmglaythu41): ดูแลครัวกลาง, พัฒนาเมนู, สต็อก
 - มะ (อุซามะฮ์ แดงหย้ง): มือขวาออกงานจัดเลี้ยง
 - มิว, ดาว, แป้ง: ทีมจัดเลี้ยง / อีเวนต์
 - นัส: บริหารจัดการระบบ Notion
 
 วิธีตอบ:
 - ตอบด้วยภาษาไทย เป็นกันเอง ชัดเจน สุภาพ กระชับ ตรงประเด็นแบบเลขาผู้บริหารมือโปร
-- เมื่อคุณอดัมบอกว่างานไหนเสร็จแล้ว ให้รับทราบ แสดงความยินดีและอัปเดตสถานะ จากนั้นชี้เป้าหมายงานถัดไปที่ต้องลุยต่อ
+- เมื่อคุณอดัมแจ้งนัดหมาย, ออกงาน, งานจัดเลี้ยง, หรือแผนงาน เช่น "พรุ่งนี้ออกงานเช้า 8 โมง", "พรุ่งนี้มีจัดเลี้ยงตอนบ่ายโมง" ให้ตอบรับอย่างกระตือรือร้น ยืนยันบันทึกตาราง และให้คำแนะนำที่จำเป็น (เช่น เตือนเวลาเตรียมตัว หรือเตือนทีมงาน)
 - เข้าใจวันเวลาปัจจุบันเสมอ (วันนี้คือ ${dateStr})`;
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
@@ -94,21 +83,26 @@ async function askGemini(promptText) {
         ]
       })
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error('Gemini error status:', res.status);
+      return null;
+    }
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
   } catch (err) {
+    console.error('Gemini exception:', err.message);
     return null;
   }
 }
 
 async function sendMessage(chatId, text) {
   try {
-    await fetch(`${API_URL}/sendMessage`, {
+    const res = await fetch(`${API_URL}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text: text, disable_web_page_preview: true })
     });
+    return await res.json();
   } catch (err) {
     console.error('Send message error:', err.message);
   }
@@ -117,71 +111,68 @@ async function sendMessage(chatId, text) {
 async function handleMessage(msg) {
   const chatId = msg.chat.id;
   const rawText = (msg.text || '').trim();
+  if (!rawText) return;
+
   const cleanCmd = rawText.replace(/@[a-zA-Z0-9_]+bot/gi, '').trim();
   const text = cleanCmd.toLowerCase();
+  const special = text.replace(/\\s+/g, '');
   console.log(`[Msg from ${msg.from?.first_name || 'User'}]: ${rawText}`);
 
+  const todayDate = formatThaiDate(getBangkokDate(0));
+  const tomorrowDate = formatThaiDate(getBangkokDate(1));
+
+  // 1. Help & Start
   if (text.startsWith('/start') || text === 'help' || text === 'เมนู') {
-    const welcome = `👋 สวัสดีครับคุณอดัม! ผมคือ Adam Assistant บนระบบ Cloud ออนไลน์ 24 ชม.
+    const welcome = `👋 สวัสดีครับคุณอดัม! ผมคือ Adam Assistant เลขาส่วนตัวออนไลน์ 24 ชม.
 
 📅 คำสั่งตารางงาน:
-• /today — ตารางวันนี้
-• /tomorrow — ตารางพรุ่งนี้
-• /week — ตารางออกงานสัปดาห์นี้
+• /today — ตารางวันนี้ (${todayDate})
+• /tomorrow — ตารางพรุ่งนี้ (${tomorrowDate})
+• /week — ภาพรวมสัปดาห์นี้
 
-📋 คำสั่งงาน & โปรเจกต์:
-• /priorities — 7 งานด่วน
+📋 ติดตามงาน & ทีม:
+• /priorities — 7 งานด่วนปัจจุบัน
 • /tasks — เช็กงานค้าง Notion ครัวกลาง
-• /team — สรุปทีมออกงาน ศุกร์/เสาร์
+• /team — รายชื่อทีมงานหลัก
 
-💬 คุยปรึกษา เล่าแผนงานยาวๆ ได้ตลอดเวลา มี Gemini AI วิเคราะห์ 24 ชม. ครับ!`;
+💬 คุณอดัมสามารถพิมพ์แจ้งตารางงาน นัดหมาย อัปเดตงาน หรือปรึกษาแผนได้ตามสบายเลยครับ ผมพร้อมดูแลตลอดเวลา!`;
     return await sendMessage(chatId, welcome);
   }
 
-  const isShort = rawText.length <= 15;
-  const clean = text.replace(/\s+/g, '');
-
-  if (text.startsWith('/today') || text === 'วันนี้' || text === 'งานวันนี้' || text === 'ตารางวันนี้') {
-    const todayDate = formatThaiDate(getBangkokDate(0));
+  // 2. Dynamic Schedule Commands
+  if (text.startsWith('/today') || special === 'วันนี้' || special === 'งานวันนี้' || special === 'ตารางวันนี้') {
     return await sendMessage(chatId, `📅 ตารางงานวันนี้ (${todayDate}):
-• ✅ จัดการเรื่องที่พักอาศัย / แจ้งเข้าน้องทีมงาน (เสร็จแล้ว)
+• 🏥 16:30 - 21:00 น. ออกงาน: โรงพยาบาลวิมุต (พญาไท)
+• ✅ จัดการเรื่องที่พักอาศัย / แจ้งเข้าน้องทีมงาน (เรียบร้อยแล้ว)
 • 📌 ส่งเอกสารประกันสังคมให้ Halo & สรุปยอดเงินเดือน
 • 🐟 ลุยเมนูและสูตรของร้านดินนาโนะ (เซนทรัลกระบี่)
-• 🏢 สรุปยอดและวางแผนงานประจำสัปดาห์`);
+• 🏢 สรุปยอดและวางแผนงานประจำสัปดาห์ / ติดตามงานครัวกลาง`);
   }
 
-  if (text.startsWith('/tomorrow') || text === 'พรุ่งนี้' || text === 'งานพรุ่งนี้' || text === 'ตารางพรุ่งนี้') {
-    const tomDate = formatThaiDate(getBangkokDate(1));
-    return await sendMessage(chatId, `📅 ตารางงานวันพรุ่งนี้ (${tomDate}):
-• ติดตามความคืบหน้าเรื่องการล็อกเมนูดินนาโนะ เซนทรัลกระบี่
-• ติดตามระบบสต็อกและงานค้างครัวกลางกับ ตี & เล็ก`);
+  if (text.startsWith('/tomorrow') || special === 'พรุ่งนี้' || special === 'งานพรุ่งนี้' || special === 'ตารางพรุ่งนี้') {
+    return await sendMessage(chatId, `📅 ตารางงานวันพรุ่งนี้ (${tomorrowDate}):
+• 🐟 ติดตามความคืบหน้าเรื่องการล็อกเมนูดินนาโนะ เซนทรัลกระบี่
+• 📦 ติดตามระบบสต็อกและงานค้างครัวกลางกับ ตี & เล็ก
+• 📊 ติดตามสรุปยอดขายและเตรียมการจัดเลี้ยงล่วงหน้า`);
   }
 
-  if (text.startsWith('/week') || (isShort && (clean === 'สัปดาห์นี้' || clean === 'ออกงาน' || clean === 'ตารางออกงาน'))) {
-    return await sendMessage(chatId, `🚚 ตารางออกงาน & นัดหมายสัปดาห์นี้ (4 - 8 พ.ย. 2026):
-
-• พฤหัสฯ 5 พ.ย. (วันนี้):
-  รอลูกค้าคอนเฟิร์ม (เช้าส่งแบบดินนาโนะ / บ่ายเตรียมของออกงาน)
-
-• ศุกร์ 6 พ.ย. | ออกงาน Shrewsbury
-  👥 ทีม: คุณอดัม, มะ | 🚗 ถึงหน้างาน: 13:00 น. (เริ่ม 17:00 น. เลิกดึก)
-
-• เสาร์ 7 พ.ย. | ออกงาน 2 ที่ชนกัน!
-  🏫 Wellington: ตี, เล็ก (ถึง ตี 05:30 น.)
-  🎬 Moonstar: คุณอดัม, มะ, มิว, ดาว, แป้ง (ถึง 09:00 น.)
-  ⚙️ 09:00 น. ทำสรุปเซอร์วิสชาร์จพนักงาน Abushi
-
-• อาทิตย์ 8 พ.ย. | ออกงาน Ava Studio`);
+  if (text.startsWith('/week') || special === 'สัปดาห์นี้' || special === 'ตารางงาน') {
+    return await sendMessage(chatId, `🚚 ตารางภาพรวมสัปดาห์นี้:
+• อังคาร 17 พ.ย.: 16:30 - 21:00 น. ออกงานโรงพยาบาลวิมุต
+• งานประจำสัปดาห์: สรุปยอดเงินเดือน / ประกันสังคม Halo / เมนูดินนาโนะ
+• การจัดการระบบครัวกลางและติดตามความคืบหน้างานทีมงาน`);
   }
 
-  if (text.startsWith('/team') || (isShort && (clean === 'ทีมงาน' || clean === 'ใครไปไหน'))) {
-    return await sendMessage(chatId, `👥 สรุปการแบ่งทีมงานออกงาน:
-1. ศุกร์ 6 พ.ย. (Shrewsbury): 👉 คุณอดัม + มะ (ถึง 13:00 น.)
-2. เสาร์ 7 พ.ย. (Wellington): 👉 ตี + เล็ก (ถึง ตี 05:30 น.)
-3. เสาร์ 7 พ.ย. (Moonstar): 👉 คุณอดัม + มะ + มิว + ดาว + แป้ง (ถึง 09:00 น.)`);
+  if (text.startsWith('/team') || special === 'ทีมงาน' || special === 'ใครไปไหน') {
+    return await sendMessage(chatId, `👥 สรุปรายชื่อทีมงานหลัก:
+• ตี (ANATEE): ครัวกลาง, สต็อก, ERP
+• เล็ก (mgmglaythu41): ครัวกลาง, พัฒนาเมนู, สต็อก
+• มะ (อุซามะฮ์ แดงหย้ง): มือขวาออกงานจัดเลี้ยง
+• มิว, ดาว, แป้ง: ทีมจัดเลี้ยง / อีเวนต์
+• นัส: บริหารจัดการระบบ Notion`);
   }
 
-  if (text.startsWith('/priorities') || (isShort && (clean === 'งานด่วน' || clean === 'งานค้าง'))) {
+  if (text.startsWith('/priorities') || special === 'งานด่วน' || special === 'งานค้าง') {
     return await sendMessage(chatId, `🎯 7 งานด่วนปัจจุบันของคุณอดัม:
 1. ดินนาโนะ (เซนทรัลกระบี่): แผนกำลังคน / ล็อกเมนูปลาไทย / ผังครัว A/B
 2. โก๋ในซอย: ตรวจชีต SOP Canvas แท็บ "พิมพ์ SOP"
@@ -192,7 +183,7 @@ async function handleMessage(msg) {
 7. การ์ดสูตรซูชิทาโก้: เช็คสูตรหม่าล่า/แตงกวาแซลมอน`);
   }
 
-  if (text.startsWith('/tasks') || (isShort && clean === 'งานครัวกลาง')) {
+  if (text.startsWith('/tasks') || special === 'งานครัวกลาง') {
     await sendMessage(chatId, '⏳ กำลังดึงงานจาก Notion ครัวกลาง...');
     const tasks = await getNotionTasks();
     if (!tasks || tasks.length === 0) {
@@ -203,40 +194,68 @@ async function handleMessage(msg) {
       const name = (t.properties.Tasks?.title || []).map(x => x.plain_text).join('') || 'ไม่มีชื่องาน';
       const status = t.properties['สถานะ']?.status?.name || 'In progress';
       const people = (t.properties['ผู้รับผิดชอบครัวกลาง']?.people || []).map(p => p.name).join(', ') || '-';
-      reply += `• ${name}\n  👤 ผู้รับผิดชอบ: ${people} | สถานะ: ${status}\n`;
+      reply += `• ${name}\n  👤 ${people} | สถานะ: ${status}\n`;
     });
     return await sendMessage(chatId, reply);
   }
 
-  // Gemini AI for natural conversation & strategic advice
+  // 3. Send all natural conversational inputs to Gemini AI directly!
   const aiAnswer = await askGemini(rawText);
   if (aiAnswer) {
     return await sendMessage(chatId, aiAnswer);
   }
 
-  return await sendMessage(chatId, `📌 รับทราบและบันทึกไว้ในแผนงานเรียบร้อยครับคุณอดัม:\n"${cleanCmd}"\n\n💡 ต้องการเช็กตารางหรือสิ่งที่ต้องทำวันพรุ่งนี้ พิมพ์: /tomorrow ได้เลยครับ`);
+  // 4. Fallback only if Gemini is unreachable
+  return await sendMessage(chatId, `📌 รับทราบและบันทึกไว้ในแผนงานเรียบร้อยครับคุณอดัม:\n"${cleanCmd}"\n\n💡 ต้องการเช็กตารางหรือสิ่งที่ต้องทำวันพรุ่งนี้ พิมพ์ /today หรือ /tomorrow ได้เลยครับ`);
 }
 
-async function poll() {
-  try {
-    const res = await fetch(`${API_URL}/getUpdates?offset=${lastUpdateId + 1}&timeout=30`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok && data.result.length > 0) {
-        for (const update of data.result) {
-          lastUpdateId = update.update_id;
-          if (update.message && update.message.text) {
-            await handleMessage(update.message);
-          }
+// HTTP Server for Telegram Webhook & Render Health Check
+const server = http.createServer((req, res) => {
+  // Telegram Webhook Handler
+  if (req.method === 'POST' && (req.url === '/webhook' || req.url.startsWith('/webhook'))) {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+      try {
+        const update = JSON.parse(body);
+        if (update && update.message && update.message.text) {
+          await handleMessage(update.message);
         }
+      } catch (err) {
+        console.error('Webhook error processing update:', err.message);
       }
-    }
-  } catch (err) {
-    console.error('Polling error:', err.message);
-    await new Promise(r => setTimeout(r, 3000));
+    });
+    return;
   }
-  setImmediate(poll);
+
+  // Health check / Keep-Alive endpoint
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('🤖 Adam Assistant Bot is Online 24/7 on Render (Webhook Mode)!\n');
+});
+
+server.listen(PORT, async () => {
+  console.log(`HTTP Webhook Server running on port ${PORT}`);
+  await setupWebhook();
+});
+
+// Setup Telegram Webhook automatically on boot
+async function setupWebhook() {
+  const webhookUrl = `${APP_URL}/webhook`;
+  try {
+    const res = await fetch(`${API_URL}/setWebhook?url=${encodeURIComponent(webhookUrl)}&drop_pending_updates=false`);
+    const data = await res.json();
+    console.log('Telegram setWebhook status:', data);
+  } catch (err) {
+    console.error('Setup webhook failed:', err.message);
+  }
 }
 
-console.log('🤖 Adam Assistant Cloud Bot is starting...');
-poll();
+// Keep-alive: Self-ping every 10 minutes to prevent Render Free instance from sleeping
+const PING_INTERVAL = 10 * 60 * 1000;
+setInterval(() => {
+  fetch(APP_URL)
+    .then(() => console.log(`[Keep-Alive] Self-ping successful at ${new Date().toISOString()}`))
+    .catch(err => console.error('[Keep-Alive] Ping error:', err.message));
+}, PING_INTERVAL);
